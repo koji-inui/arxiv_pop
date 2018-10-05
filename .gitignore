@@ -1,6 +1,6 @@
 config.json
 
-/storage
+storage/
 storage
 
 __pycache__
