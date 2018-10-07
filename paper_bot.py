@@ -2,21 +2,23 @@ import requests
 from bs4 import BeautifulSoup
 from requests_oauthlib import OAuth1Session
 import pandas as pd
-from time import sleep
 from datetime import datetime, timedelta
 import slackweb
 import json
+from google.cloud import storage as gcs
+
+from config.config import *
 
 # arxivのtagのmappingの読み込み
 with open("./config/cs_tag.json", "r") as f_tag:
     TAG_DICT = json.load(f_tag)
 
 # apiアクセス用のkeyとslack_urlの読み込み
-with open("./config/config.json", "r") as f_conf:
-    config_dict = json.load(f_conf)
-    KEYS_TWITTER = config_dict['KEYS_TWITTER']
-    KEYS_CSE = config_dict['KEYS_CSE']
-    SLACK_URL = config_dict['SLACK_URL']
+#with open("./config/config.json", "r") as f_conf:
+#    config_dict = json.load(f_conf)
+#    KEYS_TWITTER = config_dict['KEYS_TWITTER']
+#    KEYS_CSE = config_dict['KEYS_CSE']
+#    SLACK_URL = config_dict['SLACK_URL']
 
 
 class ArxivPop(object):
@@ -227,8 +229,8 @@ class ArxivPop(object):
 
     def save_as_csv(self):
         """
-        self.df_papersにタイムスタンプを押して、csvとして保存。
-        ファイル名は、ex) arxiv_pop_20181003.csv
+        self.df_papersにタイムスタンプを押して、"temp.csv"としてローカルに一度保存。
+        ファイル名を"df_arxiv_pop_20181003.csv"として、GCSに送る。
 
         parameters
         __________
@@ -245,11 +247,20 @@ class ArxivPop(object):
             "timestamp": timestamp is added.
         """
 
+        # timestampをつけて一旦ローカルに保存
         self.df_papers['timestamp'] = [datetime.now()] * len(self.df_papers)
+        fname = 'temp.csv'
+        self.df_papers.to_csv(fname, index=False)
 
-        # ここは本当はローカルではなく、GCSに送るべき。
+        # GCSに送る
+        client = gcs.Client(PROJECT_NAME)
+        bucket = client.get_bucket(BUCKET_NAME)
+
         today = datetime.now().strftime('%Y%m%d')
-        self.df_papers.to_csv('./storage/df_arxiv_pop_' + today + '.csv', index=False)
+        blob_name = 'df/df_arxiv_pop_' + today + '.csv'
+        blob = bucket.blob(blob_name)
+        blob.upload_from_filename(fname)
+
 
     def get_attachment(self, n):
         """
@@ -303,6 +314,8 @@ class ArxivPop(object):
 # google のサーチが一日100件までだけど、どうやって対応するか？
 # 一旦googleは使わずに、twitterのみで対応する。
 # 何故か、googleのヒット数とtwitterの件数はおおよそ相関する。
+
+
 
 if __name__ == '__main__':
     arxiv = ArxivPop()

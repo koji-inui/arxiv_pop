@@ -1,4 +1,5 @@
 config.json
+config.py
 
 storage/
 storage
@@ -6,3 +7,5 @@ storage
 __pycache__
 
 .idea
+
+temp.csv
