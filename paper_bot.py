@@ -143,57 +143,6 @@ class ArxivPop(object):
 
         self.df_papers = pd.concat([self.df_papers, df_reactions], axis=1)
 
-    def cse_api(self, search_word):
-        """
-        google custom searchから検索ヒット件数を取得
-
-        parameters
-        __________
-        self.df_papers : Dataframe
-            papers' title and url is included.
-
-        search_word : str
-            word for search. arxiv's abstract url.
-
-        Returns
-        _______
-        total_result : int
-            the number of results of searching the word.
-        """
-
-        query_cse = "https://www.googleapis.com/customsearch/v1" + \
-                    "?key=" + KEYS_CSE['cse_api_key'] + \
-                    "&cx=" + KEYS_CSE['custom_search_engine'] + \
-                    "&filter=1" + \
-                    "&q=" + "\"" + search_word + "\""
-
-        search_res = requests.get(query_cse).json()
-        total_result = int(search_res['searchInformation']['totalResults'])
-
-        return total_result
-
-    def cse_reaction(self):
-        """
-        custom search engineのAPIを叩いて、データを取得
-
-        parameters
-        __________
-        self.df_papers : Dataframe
-            papers' title and url is included.
-
-        Returns
-        _______
-        None
-
-        Updates
-        _______
-        self.df_papers : Dataframe
-            "cse_results": the number of that papers' total search result is added.
-        """
-
-        cse_results = [self.cse_api(search_word=title) for title in self.df_papers['title']]
-        self.df_papers['cse_results'] = cse_results
-
     def sort_reactions(self):
         """
         reactionsを一つの指標にして、並び替える
@@ -302,10 +251,6 @@ class ArxivPop(object):
         text = "     *" + self.publish_day.strftime('%m/%d') + " 発行 話題のarxiv  (全" + str(len(self.df_papers)) + "記事中)*"
         slack.notify(text=text, attachments=attachments)
 
-
-# google のサーチが一日100件までだけど、どうやって対応するか？
-# 一旦googleは使わずに、twitterのみで対応する。
-# 何故か、googleのヒット数とtwitterの件数はおおよそ相関する。
 
 
 if __name__ == '__main__':
