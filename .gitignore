@@ -1,12 +1,4 @@
-config.json
 config.py
-config/config.py
-
-storage/
-storage
-
 __pycache__
-
 .idea
-
 temp.csv

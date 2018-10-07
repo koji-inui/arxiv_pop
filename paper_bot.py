@@ -13,13 +13,6 @@ from config.config import *
 with open("./config/cs_tag.json", "r") as f_tag:
     TAG_DICT = json.load(f_tag)
 
-# apiアクセス用のkeyとslack_urlの読み込み
-#with open("./config/config.json", "r") as f_conf:
-#    config_dict = json.load(f_conf)
-#    KEYS_TWITTER = config_dict['KEYS_TWITTER']
-#    KEYS_CSE = config_dict['KEYS_CSE']
-#    SLACK_URL = config_dict['SLACK_URL']
-
 
 class ArxivPop(object):
 
@@ -28,7 +21,7 @@ class ArxivPop(object):
         self.df_papers = pd.DataFrame()
         self.topn = topn  # 何位までslackに送るか
         self.list_color = ["#800000", "#008000", "#000080", "#808000", "#800080", "#008080"]
-        #self.list_color = ["#008000", "#006020", "#004040", "#002060", "#000080", "#008000"]
+        # self.list_color = ["#008000", "#006020", "#004040", "#002060", "#000080", "#008000"]
 
     def arxiv_papers(self):
         """
@@ -261,7 +254,6 @@ class ArxivPop(object):
         blob = bucket.blob(blob_name)
         blob.upload_from_filename(fname)
 
-
     def get_attachment(self, n):
         """
         slackに通知するための、attachmentを修飾していく。
@@ -316,15 +308,12 @@ class ArxivPop(object):
 # 何故か、googleのヒット数とtwitterの件数はおおよそ相関する。
 
 
-
 if __name__ == '__main__':
     arxiv = ArxivPop()
     arxiv.arxiv_papers()
-    twitter_session = OAuth1Session(KEYS_TWITTER['consumer_key'], KEYS_TWITTER['consumer_secret'],
-                                    KEYS_TWITTER['access_token'], KEYS_TWITTER['access_secret'])
     arxiv.twitter_reaction()
-    print("本日のarxiv数は",len(arxiv.df_papers))
-    print(arxiv.df_papers[:5])
+    #print("本日のarxiv数は", len(arxiv.df_papers))
+    #print(arxiv.df_papers[:5])
 
     arxiv.sort_reactions()
 
