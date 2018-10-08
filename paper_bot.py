@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import slackweb
 import json
 from google.cloud import storage as gcs
+from retry import retry
 
 from config.config import *
 
@@ -75,6 +76,7 @@ class ArxivPop(object):
 
         return self.df_papers
 
+    @retry(tries=4, delay=60, backoff=4, max_delay=900)
     def twitter_api(self, twitter_session, search_word):
         """
         twitterのAPIを叩いて、データを取得
