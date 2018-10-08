@@ -72,7 +72,7 @@ class ArxivPop(object):
         print(len(self.df_papers))
 
         ################## for debub
-        self.df_papers = self.df_papers[:20]
+        #self.df_papers = self.df_papers[:20]
         ##################
 
         return self.df_papers
