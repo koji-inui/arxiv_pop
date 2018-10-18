@@ -8,6 +8,7 @@ import slackweb
 import json
 from google.cloud import storage as gcs
 from retry import retry
+from time import sleep
 
 from config.config import *
 
@@ -255,6 +256,87 @@ class ArxivPop(object):
         slack.notify(text=text, attachments=attachments)
 
 
+    def make_tweet(self, n, surplus):
+        """
+        dfからtweetを作成
+
+        parameters
+        __________
+        n : int
+            rank of Arxiv paper on Twitter
+        surplus : int
+            the number of character the tweet exceed 280
+
+        Returns
+        _______
+        tweet : str
+            tweet of the Arxiv information
+        """
+
+        tweet = f"{self.publish_day.strftime('%Y/%m/%d')} 投稿 {n+1}位\n" + \
+                f"{self.df_papers['tag'][n][3:]}({TAG_DICT[self.df_papers['tag'][n]]})\n" + \
+                f"{self.df_papers['title'][n][:len(self.df_papers['title'][n])-surplus]}\n" + \
+                f"{self.df_papers['url'][n]}\n" + \
+                f"{self.df_papers['num_tweet'][n]} Tweets  {self.df_papers['total_retweet'][n]} Retweets  {self.df_papers['total_favorite'][n]} Favorites"
+
+        return tweet
+
+
+    #@retry(tries=4, delay=60, backoff=4, max_delay=900)
+    def tweet_to_twitter(self, twitter_session, n):
+        """
+        twitterのAPIを叩いて、データを取得
+
+        parameters
+        __________
+        twitter_session : object
+            authorized twitter session. keys are already prepared.
+
+        n : int
+            rank of Arxiv paper on Twitter
+
+        Returns
+        _______
+        None
+        """
+
+        surplus = 0
+        tweet = self.make_tweet(n, surplus)
+        print(len(tweet), n)
+        surplus = len(tweet) - 260
+        if surplus > 0:
+            tweet = self.make_tweet(n, surplus)
+            print(len(tweet), n)
+
+        url = "https://api.twitter.com/1.1/statuses/update.json"
+        params = {"status": tweet}
+        req = twitter_session.post(url, params=params)
+        print(req)
+        print(req.text)
+
+
+    def topn_to_twitter(self):
+        """
+        scoreが上位のarxivを抜き出して、twitterに送信する。
+
+        parameters
+        __________
+        self.df_papers : Dataframe
+            the papers' information is stored.
+
+        Returns
+        _______
+        None
+        """
+
+        twitter_session = OAuth1Session(KEYS_TWITTER['consumer_key'], KEYS_TWITTER['consumer_secret'],
+                                        KEYS_TWITTER['access_token'], KEYS_TWITTER['access_secret'])
+
+        for n in range(self.topn)[::-1]:
+            self.tweet_to_twitter(twitter_session, n)
+            sleep(1)
+
+
 
 if __name__ == '__main__':
     arxiv = ArxivPop()
@@ -268,3 +350,4 @@ if __name__ == '__main__':
     arxiv.save_as_csv()
 
     arxiv.topn_to_slack()
+    arxiv.topn_to_twitter()
