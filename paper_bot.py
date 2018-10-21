@@ -9,12 +9,18 @@ import json
 from google.cloud import storage as gcs
 from retry import retry
 from time import sleep
+import os
 
 from config.config import *
 
 # arxivのtagのmappingの読み込み
 with open("./config/cs_tag.json", "r") as f_tag:
     TAG_DICT = json.load(f_tag)
+
+# 'test' or 'prot'が入る
+TEST_OR_PROD = os.environ.get('ARXIV_POP_TEST_OR_PROD')
+if TEST_OR_PROD not in ('test','prod'):
+    raise ValueError("TEST_OR_PROD have no value or incorrect value")
 
 
 class ArxivPop(object):
@@ -73,7 +79,8 @@ class ArxivPop(object):
         print(len(self.df_papers))
 
         ################## for debub
-        #self.df_papers = self.df_papers[:20]
+        if TEST_OR_PROD == 'test':
+            self.df_papers = self.df_papers[:20]
         ##################
 
         return self.df_papers
@@ -234,7 +241,7 @@ class ArxivPop(object):
                       "color": self.list_color[n]}
         return attachment
 
-    def topn_to_slack(self):
+    def topn_to_slack(self, slack_url):
         """
         scoreが上位のarxivを抜き出して、slackに送信する。
 
@@ -247,12 +254,16 @@ class ArxivPop(object):
         _______
         None
         """
-        slack = slackweb.Slack(url=SLACK_URL)
+        slack = slackweb.Slack(url=slack_url)
         attachments = []
         for n in range(self.topn):
             attachments.append(self.get_attachment(n))
 
         text = "     *" + self.publish_day.strftime('%m/%d') + " 発行 話題のarxiv  (全" + str(len(self.df_papers)) + "記事中)*"
+
+        if TEST_OR_PROD == 'test':
+            text = "[test]\n" + text
+
         slack.notify(text=text, attachments=attachments)
 
 
@@ -278,6 +289,9 @@ class ArxivPop(object):
                 f"{self.df_papers['title'][n][:len(self.df_papers['title'][n])-surplus]}\n" + \
                 f"{self.df_papers['url'][n]}\n" + \
                 f"{self.df_papers['num_tweet'][n]} Tweets  {self.df_papers['total_retweet'][n]} Retweets  {self.df_papers['total_favorite'][n]} Favorites"
+
+        if TEST_OR_PROD == 'test':
+            tweet = "[test]\n" + tweet
 
         return tweet
 
@@ -342,12 +356,12 @@ if __name__ == '__main__':
     arxiv = ArxivPop()
     arxiv.arxiv_papers()
     arxiv.twitter_reaction()
-    #print("本日のarxiv数は", len(arxiv.df_papers))
-    #print(arxiv.df_papers[:5])
 
     arxiv.sort_reactions()
 
     arxiv.save_as_csv()
 
-    arxiv.topn_to_slack()
+    arxiv.topn_to_slack(SLACK_URL_PRIVATE)
+    arxiv.topn_to_slack(SLACK_URL_OFFICE)
+
     arxiv.topn_to_twitter()
