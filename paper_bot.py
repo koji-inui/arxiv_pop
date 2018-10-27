@@ -6,15 +6,16 @@ import pandas as pd
 from datetime import datetime, timedelta
 import slackweb
 import json
-from google.cloud import storage as gcs
+import boto3
 from retry import retry
 from time import sleep
 import os
 
-from config.config import *
+# Twitterのkeyなどの定数を格納
+from setting import Params
 
 # arxivのtagのmappingの読み込み
-with open("./config/cs_tag.json", "r") as f_tag:
+with open("files/cs_tag.json", "r") as f_tag:
     TAG_DICT = json.load(f_tag)
 
 # 'test' or 'prot'が入る
@@ -34,7 +35,7 @@ class ArxivPop(object):
 
     def arxiv_papers(self):
         """
-        arxivからのリストを取得
+        arxivからのリストをAPIを叩いてを取得
 
         parameters
         __________
@@ -78,10 +79,9 @@ class ArxivPop(object):
 
         print(len(self.df_papers))
 
-        ################## for debub
+        # testの場合は論文数を絞る
         if TEST_OR_PROD == 'test':
             self.df_papers = self.df_papers[:20]
-        ##################
 
         return self.df_papers
 
@@ -142,8 +142,8 @@ class ArxivPop(object):
             the number of that papers' tweet, retweet, favorite is added.
         """
 
-        twitter_session = OAuth1Session(KEYS_TWITTER['consumer_key'], KEYS_TWITTER['consumer_secret'],
-                                        KEYS_TWITTER['access_token'], KEYS_TWITTER['access_secret'])
+        twitter_session = OAuth1Session(Params.TWITTER_CONSUMER_KEY, Params.TWITTER_CONSUMER_SECRET,
+                                        Params.TWITTER_ACCESS_TOKEN, Params.TWITTER_ACCESS_SECRET)
 
         df_reactions = pd.DataFrame(columns=['num_tweet', 'total_retweet', 'total_favorite'])
 
@@ -202,17 +202,18 @@ class ArxivPop(object):
 
         # timestampをつけて一旦ローカルに保存
         self.df_papers['timestamp'] = [datetime.now()] * len(self.df_papers)
-        fname = 'temp.csv'
-        self.df_papers.to_csv(fname, index=False)
+        filename_local = 'files/temp.csv'
+        self.df_papers.to_csv(filename_local, index=False)
 
-        # GCSに送る
-        client = gcs.Client(PROJECT_NAME)
-        bucket = client.get_bucket(BUCKET_NAME)
+        # s3に送る
+        s3 = boto3.resource('s3')
+        bucket = s3.Bucket(Params.S3_BUCKET_NAME)
 
         today = datetime.now().strftime('%Y%m%d')
-        blob_name = 'df/df_arxiv_pop_' + today + '.csv'
-        blob = bucket.blob(blob_name)
-        blob.upload_from_filename(fname)
+        filename_in_s3 = 'daily/df_arxiv_pop_' + today + '.csv'
+
+        if TEST_OR_PROD == 'prod':
+            bucket.upload_file(filename_local, filename_in_s3)
 
     def get_attachment(self, n):
         """
@@ -299,7 +300,7 @@ class ArxivPop(object):
     #@retry(tries=4, delay=60, backoff=4, max_delay=900)
     def tweet_to_twitter(self, twitter_session, n):
         """
-        twitterのAPIを叩いて、データを取得
+        twitterのAPIを叩いて、n番目のarxivについてつぶやく
 
         parameters
         __________
@@ -343,8 +344,8 @@ class ArxivPop(object):
         None
         """
 
-        twitter_session = OAuth1Session(KEYS_TWITTER['consumer_key'], KEYS_TWITTER['consumer_secret'],
-                                        KEYS_TWITTER['access_token'], KEYS_TWITTER['access_secret'])
+        twitter_session = OAuth1Session(Params.TWITTER_CONSUMER_KEY, Params.TWITTER_CONSUMER_SECRET,
+                                        Params.TWITTER_ACCESS_TOKEN, Params.TWITTER_ACCESS_SECRET)
 
         for n in range(self.topn)[::-1]:
             self.tweet_to_twitter(twitter_session, n)
@@ -361,7 +362,7 @@ if __name__ == '__main__':
 
     arxiv.save_as_csv()
 
-    arxiv.topn_to_slack(SLACK_URL_PRIVATE)
-    arxiv.topn_to_slack(SLACK_URL_OFFICE)
-
-    arxiv.topn_to_twitter()
+    arxiv.topn_to_slack(Params.SLACK_URL_PRIVATE)
+    if TEST_OR_PROD == 'prod':
+        arxiv.topn_to_slack(Params.SLACK_URL_OFFICE)
+        arxiv.topn_to_twitter()

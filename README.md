@@ -1,20 +1,10 @@
 # arxiv_pop
 
+## 概要
+1週間前に発行されたarxiv(cs)の中で、この1週間でtwitter上で話題になっている論文
 
-config/config.py
-```
-# config file
+上位5件を、twitterとslackに通知するボットです！
 
-KEYS_TWITTER = {
-    "consumer_key": "*************************",
-    "consumer_secret": "**************************************************",
-    "access_token": "**************************************************",
-    "access_secret": "*********************************************"
-  }
 
-SLACK_URL = "https://hooks.slack.com/services/********************************************"
+## 環境構成(WIP)
 
-# GCSの設定
-PROJECT_NAME = "[your-GCP-project-name]"
-BUCKET_NAME = "[your-GCS-bucket-name]"
-```
