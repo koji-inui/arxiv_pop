@@ -5,6 +5,7 @@
 
 上位5件を、twitterとslackに通知するボットです！
 
+Twitterは[**こちら**](https://twitter.com/arxiv_pop)。
 
 ## 環境構成(WIP)
 
