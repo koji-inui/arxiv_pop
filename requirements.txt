@@ -1,0 +1,7 @@
+retry
+boto3
+pandas
+requests
+slackweb
+beautifulsoup4
+requests_oauthlib
