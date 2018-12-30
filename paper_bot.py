@@ -57,6 +57,7 @@ class ArxivPop(object):
                       + "&terms-0-field=title" \
                       + "&classification-computer_science=y" \
                       + "&classification-physics_archives=all" \
+                      + "&classification-include_cross_list=exclude" \
                       + "&date-year=" \
                       + "&date-filter_by=date_range" \
                       + "&date-from_date=" + publish_day_str \
@@ -70,8 +71,8 @@ class ArxivPop(object):
         soup_arxiv = BeautifulSoup(ret_arxiv.text, "html.parser")
 
         list_title = [title.text.strip() for title in soup_arxiv.find_all('p', class_="title is-5 mathjax")]
-        list_url = [url.a.attrs['href'] for url in soup_arxiv.find_all('p', class_="list-title level-left")]
-        list_tag = [tag.text for tag in soup_arxiv.find_all(class_="tag is-small search-hit tooltip is-tooltip-right")]
+        list_url = [url.a.attrs['href'] for url in soup_arxiv.find_all('p', class_="list-title is-inline-block")]
+        list_tag = [tag.text for tag in soup_arxiv.find_all(class_="tag is-small is-link tooltip is-tooltip-top")]
 
         self.df_papers['title'] = list_title
         self.df_papers['url'] = list_url
