@@ -365,5 +365,5 @@ if __name__ == '__main__':
 
     arxiv.topn_to_slack(Params.SLACK_URL_PRIVATE)
     if TEST_OR_PROD == 'prod':
-        arxiv.topn_to_slack(Params.SLACK_URL_OFFICE)
+        #arxiv.topn_to_slack(Params.SLACK_URL_OFFICE)
         arxiv.topn_to_twitter()
